@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { isGoal, reward, type Save } from './game';
 import { useGame } from './store';
+import { ClubIcon, CourtArt, Mascot } from './ClubArt';
 type Props = { onExit: () => void; notify: (text: string) => void };
 export function Basketball({ onExit, notify }: Props) {
   const [phase, setPhase] = useState<'ready' | 'running' | 'flying' | 'result'>('ready');
@@ -9,13 +10,15 @@ export function Basketball({ onExit, notify }: Props) {
   function shoot() { if (phase !== 'running' || locked.current) return; locked.current = true; setMade(isGoal(value)); setPhase('flying'); }
   useEffect(() => { if (phase !== 'running') return; const key = (e: KeyboardEvent) => { if ((e.code === 'Space' || e.code === 'Enter') && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); shoot(); } }; window.addEventListener('keydown', key); return () => window.removeEventListener('keydown', key); });
   useEffect(() => { if (phase !== 'flying') return; const timer = window.setTimeout(() => { const s = useGame.getState().save; if (s) { const next = reward(s, made ? 20 : 5, made ? 20 : 5); next.personality.brave += made ? 2 : 1; useGame.getState().setSave(next); } setPhase('result'); notify(made ? '멋진 골인! +20 XP · +20 코인' : '좋은 도전이었어! +5 XP · +5 코인'); }, 1050); return () => clearTimeout(timer); }, [phase, made, notify]);
-  return <section className="panel game-panel"><div className="section-heading"><div><span className="eyebrow">STARLIGHT ARENA</span><h2>별빛 자유투</h2></div><button className="quiet" onClick={onExit}>나가기 ↗</button></div>
-    <p>초록 구간에서 멈추고, 별빛 슛을 던져 봐!</p><div className={`court ${phase === 'flying' ? `shooting ${made ? 'made' : 'missed'}` : ''}`}><div className="arena-lights">✦ · ✦ · ✦ · ✦ · ✦</div><div className="scoreboard">SKY GUARDIANS <strong>{phase === 'result' ? made ? 'NICE SHOT!' : 'NICE TRY!' : 'YOU CAN DO IT!'}</strong></div><div className="backboard"><div/></div><div className="hoop"/><div className="net">╲╱╲╱</div><div className="court-lines"/>{[0,1,2,3,4,5].map(i => <span className={`player p${i}`} key={i}>{i % 2 ? '🦕' : '🐲'}</span>)}<span className="basketball">🏀</span><div className="audience">✦ &nbsp; 함께라면 할 수 있어! &nbsp; ✦</div></div>
-    <div className="timing" role="progressbar" aria-label="슛 타이밍, 초록 구간 44부터 58" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value)}><span className="goal-zone"/><span className="needle" style={{ left: `${value}%` }}/></div><div className="gauge-labels"><span>천천히</span><b>44–58 골인 구간</b><span>힘차게</span></div>
-    {phase === 'ready' && <button className="primary wide" onClick={() => { locked.current = false; setValue(12); direction.current = 1; setPhase('running'); }}>연습 시작하기</button>}
-    {phase === 'running' && <button className="primary coral wide" onClick={shoot}>🏀 지금 던지기 <small>Space / Enter</small></button>}
-    {phase === 'flying' && <p className="result" role="status">공이 날아가요… ✨</p>}
-    {phase === 'result' && <div className="result" role="status"><h3>{made ? '멋져! 별빛처럼 쏙!' : '아깝다! 한 번 더 해 볼까?'}</h3><p>+{made ? 20 : 5} XP · +{made ? 20 : 5} 코인</p><button className="primary" onClick={() => { locked.current = false; setValue(12); setPhase('ready'); }}>다시 도전하기</button></div>}
+  return <section className="panel game-panel"><div className="section-heading"><div><span className="eyebrow">SSONYA’S SHOOTING CLUB · 01</span><h2>쏘냐의 별빛 자유투</h2></div><button className="quiet" onClick={onExit}>나가기 ↗</button></div>
+    <p className="game-intro">작은 용기를 던져 봐. 쏘냐와 위냐가 응원할게!</p>
+    <div className="arena-game"><div className={`sono-court ${phase === 'flying' ? `shooting ${made ? 'made' : 'missed'}` : ''}`}><CourtArt/><div className="arena-vignette"/><div className="arena-score"><span>GOYANG SONO PLAY CLUB</span><strong>{phase==='result' ? made?'NICE SHOT!':'NICE TRY!' : 'YOUR STAGE'}</strong><small>{phase==='running'?'지금, 너의 타이밍을 찾아봐':'함께라면 언제나 즐거운 코트'}</small></div><div className="arena-crowd"/>{(['left-one','right-one','left-two','right-two'] as const).map((p,i)=><div className={`arena-player ${p}`} key={p}><Mascot kind={i%2?'winya':'ssonya'}/></div>)}<div className="arena-ball"><ClubIcon name="play"/></div><span className="court-sponsor">SONO · SKY IS THE LIMIT</span>{phase==='result'&&made&&<div className="arena-success" aria-hidden="true"><span>SWISH! ✦</span></div>}</div>
+    <div className="arena-controller"><div className="controller-mascot"><Mascot kind="winya"/></div><span className="controller-kicker">WINYA’S LITTLE TIP</span><h3>초록 구간에 닿으면,<br/>톡! 하고 던져 줘.</h3><p>실패해도 괜찮아. 언제든 다시!</p><div className="timing" role="progressbar" aria-label="슛 타이밍, 초록 구간 44부터 58" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value)}><span className="goal-zone"/><span className="needle" style={{ left: `${value}%` }}/></div><div className="gauge-labels"><span>천천히</span><b>✓ 골인 구간</b><span>힘차게</span></div>
+    {phase==='ready'&&<button className="primary wide" onClick={()=>{locked.current=false;setValue(12);direction.current=1;setPhase('running');}}><ClubIcon name="play"/> 연습 시작하기</button>}
+    {phase==='running'&&<button className="primary coral wide" onClick={shoot}><ClubIcon name="play"/> 지금 던지기!</button>}
+    {phase==='flying'&&<div className="flying-note" role="status">두근두근, 날아간다! ✦</div>}
+    {phase==='result'&&<div className="result" role="status"><h3>{made?'멋져! 마음까지 시원한 슛!':'좋은 도전이었어. 한 번 더?'}</h3><p>+{made?20:5} XP · +{made?20:5} 코인</p><button className="primary" onClick={()=>{locked.current=false;setValue(12);setPhase('ready');}}>다시 도전하기 <ClubIcon name="arrow"/></button></div>}</div></div>
+    <div className="arena-howto"><span><b>1</b> 연습 시작하기</span><span><b>2</b> 초록 구간을 기다리기</span><span><b>3</b> 버튼을 톡 누르기!</span><small>키보드 Space / Enter로도 가능해요.</small></div>
   </section>;
 }
 export function Fruit({ onExit, notify }: Props) {
