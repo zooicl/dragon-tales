@@ -15,6 +15,6 @@ describe('부담 없는 돌봄과 일회 보상', () => {
 describe('저장 검증',()=>{
   it('올바른 저장을 JSON 왕복 복원한다',()=>{const s=createSave('water','아쿠아');expect(saveSchema.parse(JSON.parse(JSON.stringify(s)))).toEqual(s);});
   it.each(['','   ','가'.repeat(13)])('잘못된 이름 %s을 거부한다',name=>{expect(saveSchema.safeParse({...createSave('forest','초코'),name}).success).toBe(false);});
-  it('오염된 수치와 알 수 없는 버전을 거부한다',()=>{const s=createSave('forest','모모');expect(saveSchema.safeParse({...s,coins:-1}).success).toBe(false);expect(saveSchema.safeParse({...s,schemaVersion:2}).success).toBe(false);expect(saveSchema.safeParse({...s,stats:{...s.stats,energy:Infinity}}).success).toBe(false);});
+  it('오염된 수치와 알 수 없는 버전을 거부한다',()=>{const s=createSave('forest','모모');expect(saveSchema.safeParse({...s,coins:-1}).success).toBe(false);expect(saveSchema.safeParse({...s,schemaVersion:99}).success).toBe(false);expect(saveSchema.safeParse({...s,stats:{...s.stats,energy:Infinity}}).success).toBe(false);});
 });
 describe('자유투 판정',()=>{it('44~58 양 끝을 포함한다',()=>{expect(isGoal(44)).toBe(true);expect(isGoal(58)).toBe(true);expect(isGoal(43.9)).toBe(false);expect(isGoal(58.1)).toBe(false);});});

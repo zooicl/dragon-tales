@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { isGoal, reward, type Save } from './game';
 import { useGame } from './store';
 import { ClubIcon, CourtArt, Mascot } from './ClubArt';
+import { completeRegion } from './expansion';
 type Props = { onExit: () => void; notify: (text: string) => void };
 export function Basketball({ onExit, notify }: Props) {
   const [phase, setPhase] = useState<'ready' | 'running' | 'flying' | 'result'>('ready');
@@ -30,6 +31,6 @@ export function Fruit({ onExit, notify }: Props) {
 export function Forest({ notify }: Pick<Props,'notify'>) {
   const save = useGame(s => s.save); const [found, setFound] = useState<number[]>([]); const [hint, setHint] = useState(false);
   useEffect(() => { if (!hint) return; const t = setTimeout(() => setHint(false), 3000); return () => clearTimeout(t); }, [hint]);
-  function find(i: number) { if (found.includes(i)) return; const next = [...found, i]; setFound(next); if (next.length === 3 && save) { const key = 'explore:whispering-footprints'; const claimed = save.claimedRewards.includes(key); const s: Save = reward(save, 25, 40, key); if (!claimed) s.personality.brave += 2; useGame.getState().setSave(s); notify(claimed ? '발자국을 모두 찾았어! 첫 보상은 이미 받았어요.' : '숲 탐험 완료! +25 XP · +40 코인'); } }
+  function find(i: number) { if (found.includes(i)) return; const next = [...found, i]; setFound(next); if (next.length === 3 && save) { const key = 'explore:whispering-footprints'; const claimed = save.claimedRewards.includes(key); const s: Save = completeRegion(save, 'forest'); useGame.getState().setSave(s); notify(claimed ? '발자국을 모두 찾았어! 첫 보상은 이미 받았어요.' : '숲 탐험 완료! +25 XP · +40 코인'); } }
   return <section className="panel"><div className="section-heading"><div><span className="eyebrow">A LITTLE ADVENTURE</span><h2>속삭이는 숲</h2></div><span className="pill">발자국 {found.length}/3</span></div><p>풀숲 사이에 숨은 발자국 세 개를 찾아봐.</p><div className={`forest-field ${hint ? 'hinting' : ''}`}><div className="forest-sun"/>{['🌲','🌳','🌲','🌳','🌲','🌿','🌿','🌼'].map((t, i) => <span className={`forest-tree t${i}`} key={i}>{t}</span>)}<div className="forest-path"/>{[{x:22,y:65},{x:68,y:43},{x:52,y:80}].map((p,i) => <button key={i} className={`footprint ${found.includes(i) ? 'found' : ''}`} aria-label={`숨은 발자국 ${i+1}`} disabled={found.includes(i)} style={{left:`${p.x}%`,top:`${p.y}%`}} onClick={() => find(i)}>{found.includes(i) ? '✨' : '🐾'}</button>)}<span className="forest-caption">천천히 둘러봐도 괜찮아.</span></div><div className="section-heading"><button className="secondary" onClick={() => setHint(true)}>💡 3초 힌트 보기</button>{found.length === 3 && <button className="primary" onClick={() => setFound([])}>다시 찾아보기</button>}</div>{found.length === 3 && <p className="result" role="status">세 발자국을 모두 찾았어요! {save?.claimedRewards.includes('explore:whispering-footprints') && '첫 탐험 보상 수령 완료 ✓'}</p>}</section>;
 }

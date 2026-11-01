@@ -3,19 +3,34 @@ export const species = {
   forest: { name: '숲 드래곤', nickname: '모모', color: '#8ad5e5', accent: '#a9d66e', description: '작은 잎사귀로 마음을 전하는 다정한 친구', icon: '🌿' },
   water: { name: '물방울 드래곤', nickname: '아쿠아', color: '#95ccf3', accent: '#ad9aef', description: '맑은 물방울처럼 호기심 가득한 친구', icon: '💧' },
   fire: { name: '불꽃 드래곤', nickname: '루비', color: '#ffa28b', accent: '#ffd66d', description: '따뜻한 불꽃으로 용기를 나누는 친구', icon: '🔥' },
+  rainbow: { name: '무지개 드래곤', nickname: '레인', color: '#d1b4f3', accent: '#f5b5cf', description: '알록달록한 꿈을 나누는 친구', icon: '🌈' },
+  starlight: { name: '별빛 드래곤', nickname: '루나', color: '#a7b7ed', accent: '#ffe6a3', description: '작은 별빛을 모아 주는 친구', icon: '⭐' },
 };
 export type Species = keyof typeof species;
 export const statLabels = { fullness: '배부름', happiness: '행복', energy: '체력', cleanliness: '청결', bond: '친밀도' };
 const stat = z.number().min(0).max(100);
-export const saveSchema = z.object({
-  schemaVersion: z.literal(1), name: z.string().trim().min(1).max(12), species: z.enum(['forest', 'water', 'fire']),
+const speciesSchema = z.enum(['forest', 'water', 'fire', 'rainbow', 'starlight']);
+export const buildingSchema = z.object({ id: z.string(), kind: z.enum(['house','flowers','tree','playground','pond','fountain']), x: z.number().int().min(0).max(11), y: z.number().int().min(0).max(11), harvestAt:z.number().nonnegative().optional() });
+export const saveSchema = z.preprocess(value => {
+  if (value && typeof value === 'object' && 'schemaVersion' in value && value.schemaVersion === 1) return { ...value, schemaVersion: 2 };
+  return value;
+}, z.object({
+  schemaVersion: z.literal(2), name: z.string().trim().min(1).max(12), species: speciesSchema,
   level: z.number().int().min(1).max(30), xp: z.number().min(0).max(640), coins: z.number().int().nonnegative(),
   stats: z.object({ fullness: stat, happiness: stat, energy: stat, cleanliness: stat, bond: stat }),
   personality: z.object({ playful: z.number().nonnegative(), affectionate: z.number().nonnegative(), brave: z.number().nonnegative(), caring: z.number().nonnegative() }),
   missions: z.object({ feed: z.number().int().min(0).max(3), pet: z.number().int().min(0).max(3), play: z.number().int().min(0).max(3) }),
   claimedRewards: z.array(z.string()), album: z.array(z.object({ id: z.string(), name: z.string(), title: z.string(), at: z.number() })),
   reducedMotion: z.boolean(), lastInteraction: z.number(),
-});
+  soundEnabled: z.boolean().default(false),
+  evolution: z.enum(['flower','star','rainbow']).default('star'),
+  fragments: z.array(z.enum(['forest:1','cave:1','cave:2','lake:1','sky:1'])).max(5).default([]),
+  treeRestored: z.boolean().default(false),
+  friends: z.array(z.object({ id: z.enum(['sora','windy','lumi']), xp: z.number().int().min(0).max(140) })).default([{id:'sora',xp:0},{id:'windy',xp:0},{id:'lumi',xp:0}]),
+  buildings: z.array(buildingSchema).max(144).default([{id:'starter-house',kind:'house',x:5,y:5}]),
+  items: z.record(z.number().int().nonnegative()).default({}),
+  lastHarvest: z.number().nonnegative().default(0),
+}).superRefine((s,ctx)=>{const occupied=new Set<string>();for(const b of s.buildings){const p=`${b.x},${b.y}`;if(occupied.has(p))ctx.addIssue({code:'custom',message:'건물이 겹쳐 있어요.'});occupied.add(p);}if(new Set(s.buildings.map(b=>b.id)).size!==s.buildings.length)ctx.addIssue({code:'custom',message:'건물 ID가 겹쳐 있어요.'});if(new Set(s.friends.map(f=>f.id)).size!==s.friends.length)ctx.addIssue({code:'custom',message:'친구 ID가 겹쳐 있어요.'});}));
 export type Save = z.infer<typeof saveSchema>;
 export type Action = 'feed' | 'pet' | 'play' | 'bath' | 'rest';
 export const actions: Record<Action, { label: string; icon: string; xp: number; delta: Partial<Save['stats']>; message: string }> = {
@@ -28,7 +43,7 @@ export const actions: Record<Action, { label: string; icon: string; xp: number; 
 export const xpToNext = (level: number) => 40 + level * 20;
 export function memory(s: Save, title: string): void { s.album.unshift({ id: crypto.randomUUID(), name: s.name, title, at: Date.now() }); }
 export function createSave(kind: Species, name: string): Save {
-  const s: Save = { schemaVersion: 1, name: name.trim(), species: kind, level: 1, xp: 0, coins: 500, stats: { fullness: 75, happiness: 75, energy: 80, cleanliness: 80, bond: 10 }, personality: { playful: 0, affectionate: 0, brave: 0, caring: 0 }, missions: { feed: 0, pet: 0, play: 0 }, claimedRewards: ['onboarding:hatch'], album: [], reducedMotion: false, lastInteraction: Date.now() };
+  const s = saveSchema.parse({ schemaVersion: 2, name: name.trim(), species: kind, level: 1, xp: 0, coins: 500, stats: { fullness: 75, happiness: 75, energy: 80, cleanliness: 80, bond: 10 }, personality: { playful: 0, affectionate: 0, brave: 0, caring: 0 }, missions: { feed: 0, pet: 0, play: 0 }, claimedRewards: ['onboarding:hatch'], album: [], reducedMotion: false, lastInteraction: Date.now() });
   memory(s, '알을 깨고 만난 우리'); memory(s, `${s.name}, 너의 이름을 불러 줄게`); return saveSchema.parse(s);
 }
 export function reward(source: Save, xp: number, coins: number, key?: string): Save {
