@@ -2,3 +2,5 @@ node_modules/
 dist/
 *.local
 .DS_Store
+design-references/
+docs/specification.original.md
